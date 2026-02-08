@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -20,18 +20,34 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setFormError('Please fill in all fields');
+    if (!formData.name.trim()) {
+      setFormError('Name is required');
       return false;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setFormError('Passwords do not match');
+    if (!formData.email.trim()) {
+      setFormError('Email is required');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setFormError('Please enter a valid email address');
+      return false;
+    }
+
+    if (!formData.password) {
+      setFormError('Password is required');
       return false;
     }
 
     if (formData.password.length < 6) {
       setFormError('Password must be at least 6 characters');
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setFormError('Passwords do not match');
       return false;
     }
 
@@ -46,13 +62,23 @@ const Register = () => {
       return;
     }
 
+    console.log('Form data before sending:', formData);
+
     const { confirmPassword, ...userData } = formData;
+    
+    // Ensure role is lowercase if backend expects that
+    userData.role = userData.role.toLowerCase();
+    
+    console.log('Sending to backend:', userData);
+
     const result = await register(userData);
+    
+    console.log('Registration result:', result);
     
     if (result.success) {
       navigate('/');
     } else {
-      setFormError(result.error || 'Registration failed');
+      console.error('Registration error:', result.error);
     }
   };
 
@@ -73,49 +99,74 @@ const Register = () => {
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            <input
-              type="text"
-              name="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-              placeholder="Full Name"
-            />
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                id="name"
+                type="text"
+                name="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                placeholder="John Doe"
+              />
+            </div>
             
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-              placeholder="Email address"
-            />
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                placeholder="john@example.com"
+              />
+            </div>
             
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-              placeholder="Password"
-            />
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password *
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                placeholder="At least 6 characters"
+                minLength="6"
+              />
+            </div>
             
-            <input
-              type="password"
-              name="confirmPassword"
-              required
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-              placeholder="Confirm Password"
-            />
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password *
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                name="confirmPassword"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                placeholder="Confirm your password"
+              />
+            </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Register as:
+                Register as: *
               </label>
               <div className="flex space-x-4">
                 <label className="inline-flex items-center">
@@ -145,7 +196,7 @@ const Register = () => {
           </div>
 
           {(formError || authError) && (
-            <div className="text-red-600 text-sm text-center">
+            <div className="text-red-600 bg-red-50 p-3 rounded-md text-sm">
               {formError || authError}
             </div>
           )}

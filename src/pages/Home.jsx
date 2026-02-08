@@ -20,9 +20,26 @@ const Home = () => {
       setLoading(true);
       setError(null);
       const data = await gigService.getAllGigs(filters);
-      setGigs(data);
+      
+      // Handle different response structures
+      if (Array.isArray(data)) {
+        setGigs(data);
+      } else if (data && Array.isArray(data.gigs)) {
+        setGigs(data.gigs);
+      } else if (data && Array.isArray(data.data)) {
+        setGigs(data.data);
+      } else if (data && data.success !== false) {
+        // If it's an object with gigs property
+        setGigs([]);
+        console.warn('Unexpected API response format:', data);
+      } else {
+        setGigs([]);
+        setError(data?.message || 'Failed to load gigs');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load gigs');
+      console.error('Error fetching gigs:', err);
+      setError(err.response?.data?.message || 'Failed to load gigs. Please try again.');
+      setGigs([]);
     } finally {
       setLoading(false);
     }
@@ -100,7 +117,7 @@ const Home = () => {
       )}
 
       {/* Gigs Grid */}
-      {gigs.length === 0 ? (
+      {!error && gigs.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">No gigs found. Try different filters.</p>
         </div>
@@ -108,8 +125,8 @@ const Home = () => {
         <>
           <h2 className="text-2xl font-bold mb-6">Featured Gigs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {gigs.map((gig) => (
-              <GigCard key={gig._id} gig={gig} />
+            {Array.isArray(gigs) && gigs.map((gig) => (
+              <GigCard key={gig._id || gig.id} gig={gig} />
             ))}
           </div>
         </>

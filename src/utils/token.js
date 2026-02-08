@@ -1,26 +1,62 @@
 export const tokenUtils = {
   getToken: () => {
-    return localStorage.getItem('token');
+    try {
+      return localStorage.getItem('token');
+    } catch (error) {
+      console.error('Error getting token from localStorage:', error);
+      return null;
+    }
   },
 
   setToken: (token) => {
-    localStorage.setItem('token', token);
+    try {
+      localStorage.setItem('token', token);
+    } catch (error) {
+      console.error('Error setting token in localStorage:', error);
+    }
   },
 
   removeToken: () => {
-    localStorage.removeItem('token');
+    try {
+      localStorage.removeItem('token');
+    } catch (error) {
+      console.error('Error removing token from localStorage:', error);
+    }
   },
 
   getUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr || userStr === 'undefined' || userStr === 'null') {
+        return null;
+      }
+      return JSON.parse(userStr);
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      this.removeUser(); // Clean up invalid data
+      return null;
+    }
   },
 
   setUser: (user) => {
-    localStorage.setItem('user', JSON.stringify(user));
+    try {
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch (error) {
+      console.error('Error setting user in localStorage:', error);
+    }
   },
 
   removeUser: () => {
-    localStorage.removeItem('user');
+    try {
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Error removing user from localStorage:', error);
+    }
+  },
+
+  // Clear all auth data
+  clearAuth: () => {
+    this.removeToken();
+    this.removeUser();
   }
 };
