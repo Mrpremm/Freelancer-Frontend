@@ -6,5 +6,11 @@ export const ordersApi = {
   getFreelancerOrders: (params) => axiosClient.get('/orders/freelancer', { params }),
   getById: (id) => axiosClient.get(`/orders/${id}`),
   updateStatus: (id, status) => axiosClient.put(`/orders/${id}/status`, { status }),
-  acceptOrder: (id) => axiosClient.put(`/orders/${id}/accept`),
+  acceptOrder: async (id) => {
+    return axiosClient.put(`/orders/${id}/accept`)
+  },
+  
+  cancelOrder: async (id) => {
+    return axiosClient.put(`/orders/${id}/cancel`)
+  },
 }

@@ -6,4 +6,5 @@ export const reviewsApi = {
   getFreelancerReviews: (freelancerId, params) => 
     axiosClient.get(`/reviews/freelancer/${freelancerId}`, { params }),
   delete: (id) => axiosClient.delete(`/reviews/${id}`),
+  getByOrderId: (orderId) => axiosClient.get(`/reviews/order/${orderId}`),
 }
