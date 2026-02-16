@@ -44,6 +44,7 @@ const FreelancerOrders = () => {
   const statusOptions = [
     { value: '', label: 'All Orders' },
     { value: 'Pending', label: 'Pending' },
+    { value: 'Approved', label: 'Approved' },
     { value: 'In Progress', label: 'In Progress' },
     { value: 'Delivered', label: 'Delivered' },
     { value: 'Completed', label: 'Completed' }
@@ -54,11 +55,15 @@ const FreelancerOrders = () => {
       case 'Pending':
         return (
           <button
-            onClick={() => updateOrderStatus(order._id, 'In Progress')}
+            onClick={() => updateOrderStatus(order._id, 'Approved')}
             className="btn-primary text-sm"
           >
-            Start Working
+            Accept Order
           </button>
+        )
+      case 'Approved':
+        return (
+          <span className="text-sm text-gray-500 italic">Waiting for client payment</span>
         )
       case 'In Progress':
         return (
@@ -158,7 +163,9 @@ const FreelancerOrders = () => {
                         Delivery Due: {new Date(order.deliveryDate).toLocaleDateString()}
                       </p>
                     </div>
-                    {/* Actions removed from here as they are now in details page */}
+                    <div className="mt-4 md:mt-0">
+                      {getStatusActions(order)}
+                    </div>
                   </div>
                 </div>
               </Link>

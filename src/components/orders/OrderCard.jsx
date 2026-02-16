@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Calendar, DollarSign, Package, User } from 'lucide-react'
 import { formatDate } from '../../utils/helpers'
+import axiosClient from '../../api/axiosClient'
 
 const OrderCard = ({ order }) => {
   const getStatusColor = (status) => {
     const colors = {
       'Pending': 'bg-yellow-100 text-yellow-800',
+      'Approved': 'bg-teal-100 text-teal-800',
       'In Progress': 'bg-blue-100 text-blue-800',
       'Delivered': 'bg-purple-100 text-purple-800',
       'Completed': 'bg-green-100 text-green-800',
@@ -31,9 +33,32 @@ const OrderCard = ({ order }) => {
               </div>
             </div>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-            {order.status}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+              {order.status}
+            </span>
+            {order.status === 'Approved' && (
+              <button
+                onClick={async (e) => {
+                  e.preventDefault(); // Prevent Link navigation
+                  try {
+                    const response = await axiosClient.post('/payment/create-checkout-session', { orderId: order._id });
+                    if (response.url) {
+                      window.location.href = response.url;
+                    }
+                  } catch (error) {
+                    console.error(error);
+                    // Alert since we are in a map and hooks might be tricky if not at top level (OrderCard is component though)
+                    // Better to just let it fail or log. Ideally pass handler.
+                    alert('Failed to initiate payment');
+                  }
+                }}
+                className="z-10 bg-primary-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors shadow-sm"
+              >
+                Pay Now
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between border-t pt-4">

@@ -12,7 +12,8 @@ import {
   Calendar,
   CheckCircle,
   MessageSquare,
-  Award
+  Award,
+  DollarSign
 } from 'lucide-react'
 import RatingStars from '../../components/common/RatingStars'
 import GigCard from '../../components/gigs/GigCard'
@@ -96,18 +97,33 @@ const FreelancerProfilePage = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
               <div>
                 <h1 className="text-3xl font-bold">{freelancer.name}</h1>
-                <div className="flex items-center mt-2">
-                  <RatingStars rating={freelancer.rating} size={20} />
-                  <span className="ml-3 text-gray-600">
-                    {freelancer.rating.toFixed(1)} ({freelancer.totalReviews} reviews)
-                  </span>
+                <p className="text-xl text-gray-600 font-medium">{freelancer.title}</p>
+
+                <div className="flex flex-wrap items-center gap-4 mt-2 text-gray-600">
+                  <div className="flex items-center">
+                    <RatingStars rating={freelancer.rating} size={18} />
+                    <span className="ml-2 text-sm">
+                      {freelancer.rating.toFixed(1)} ({freelancer.totalReviews} reviews)
+                    </span>
+                  </div>
+
+                  {freelancer.location && (
+                    <div className="flex items-center">
+                      <MapPin size={18} className="mr-1" />
+                      <span>{freelancer.location}</span>
+                    </div>
+                  )}
+
+                  {freelancer.hourlyRate > 0 && (
+                    <div className="flex items-center text-primary-600 font-semibold">
+                      <DollarSign size={18} className="mr-1" />
+                      <span>${freelancer.hourlyRate}/hr</span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="mt-4 md:mt-0">
-                <button className="btn-primary flex items-center">
-                  <MessageSquare size={20} className="mr-2" />
-                  Contact
-                </button>
+              <div className="mt-4 md:mt-0 flex flex-col gap-3">
+                {/* Contact button removed as requested */}
               </div>
             </div>
 
@@ -246,7 +262,7 @@ const FreelancerProfilePage = () => {
                       <h3 className="text-lg font-semibold text-gray-900">{exp.title}</h3>
                       <div className="text-primary-600 font-medium mb-1">{exp.company}</div>
                       <div className="text-sm text-gray-500 mb-3">
-                        {new Date(exp.startDate).getFullYear()} - {exp.endDate ? new Date(exp.endDate).getFullYear() : 'Present'}
+                        {exp.startDate ? new Date(exp.startDate).getFullYear() : 'N/A'} - {exp.endDate ? new Date(exp.endDate).getFullYear() : 'Present'}
                       </div>
                       {exp.description && (
                         <p className="text-gray-600 text-sm leading-relaxed">{exp.description}</p>

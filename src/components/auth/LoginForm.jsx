@@ -17,6 +17,7 @@ const LoginForm = () => {
   const { showError, showSuccess } = useToast()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState('client') // Default to client, just for UI
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
@@ -25,7 +26,9 @@ const LoginForm = () => {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      await login(data)
+      // We pass role too, though backend mainly uses email. 
+      // This could be used for redirect logic if needed.
+      await login({ ...data, role })
       showSuccess('Login successful!')
       navigate('/')
     } catch (error) {
@@ -39,8 +42,33 @@ const LoginForm = () => {
     <div className="max-w-md mx-auto">
       <div className="card">
         <h2 className="text-2xl font-bold mb-6 text-center">Welcome Back</h2>
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+          {/* Role Selection Toggle */}
+          <div className="flex bg-gray-100 p-1 rounded-lg mb-6">
+            <button
+              type="button"
+              onClick={() => setRole('client')}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${role === 'client'
+                  ? 'bg-white text-primary-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Client
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('freelancer')}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${role === 'freelancer'
+                  ? 'bg-white text-primary-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Freelancer
+            </button>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -93,32 +121,6 @@ const LoginForm = () => {
               Sign up
             </Link>
           </p>
-        </div>
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue as</span>
-            </div>
-          </div>
-          
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            <Link
-              to="/register?role=client"
-              className="btn-outline text-center"
-            >
-              Client
-            </Link>
-            <Link
-              to="/register?role=freelancer"
-              className="btn-outline text-center"
-            >
-              Freelancer
-            </Link>
-          </div>
         </div>
       </div>
     </div>

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { 
-  DollarSign, 
-  Briefcase, 
-  Star, 
-  Clock, 
+import { useAuth } from '../../hooks/useAuth'
+import {
+  DollarSign,
+  Briefcase,
+  Star,
+  Clock,
   TrendingUp,
   Eye,
   MessageSquare,
@@ -15,6 +16,11 @@ import { ordersApi } from '../../api/orders'
 import { useToast } from '../../hooks/useToast'
 
 const FreelancerDashboard = () => {
+  const { user } = useAuth() // Ensure useAuth is imported at the top if not already (it wasn't imported in the file view, I need to add it)
+
+  // Check if profile is complete
+  const isProfileComplete = user?.title && user?.bio && user?.skills?.length > 0 && user?.hourlyRate && user?.location;
+
   const [stats, setStats] = useState({
     totalGigs: 0,
     activeOrders: 0,
@@ -33,25 +39,25 @@ const FreelancerDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch gigs
       const myGigs = await gigsApi.getMyGigs()
       const gigs = myGigs.gigs || []
-      
+
       // Fetch orders
       const ordersResponse = await ordersApi.getFreelancerOrders({ limit: 5 })
       const orders = ordersResponse.orders || []
-      
+
       // Calculate stats
-      const activeOrders = orders.filter(order => 
+      const activeOrders = orders.filter(order =>
         ['Pending', 'In Progress', 'Delivered'].includes(order.status)
       ).length
-      
+
       const totalEarnings = orders
         .filter(order => order.status === 'Completed')
         .reduce((sum, order) => sum + order.amount, 0)
-      
-      const avgRating = gigs.length > 0 
+
+      const avgRating = gigs.length > 0
         ? gigs.reduce((sum, gig) => sum + gig.rating, 0) / gigs.length
         : 0
 
@@ -61,7 +67,7 @@ const FreelancerDashboard = () => {
         totalEarnings,
         avgRating: parseFloat(avgRating.toFixed(1))
       })
-      
+
       setRecentGigs(gigs.slice(0, 3))
       setRecentOrders(orders.slice(0, 5))
     } catch (error) {
@@ -121,6 +127,32 @@ const FreelancerDashboard = () => {
           Create New Gig
         </Link>
       </div>
+
+      {/* Profile Completion Warning */}
+      {!isProfileComplete && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <span className="font-medium">Your profile is incomplete!</span>
+                  {' '}Clients are more likely to hire freelancers with complete profiles.
+                  Please add your professional title, bio, skills, hourly rate, and location.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/freelancer/profile"
+              className="ml-4 whitespace-nowrap font-medium text-yellow-700 hover:text-yellow-600 underline"
+            >
+              Complete Profile
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -198,12 +230,11 @@ const FreelancerDashboard = () => {
               recentOrders.map((order) => (
                 <div key={order._id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-4">
-                    <div className={`p-2 rounded-full ${
-                      order.status === 'Completed' ? 'bg-green-100 text-green-600' :
+                    <div className={`p-2 rounded-full ${order.status === 'Completed' ? 'bg-green-100 text-green-600' :
                       order.status === 'In Progress' ? 'bg-yellow-100 text-yellow-600' :
-                      order.status === 'Delivered' ? 'bg-blue-100 text-blue-600' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
+                        order.status === 'Delivered' ? 'bg-blue-100 text-blue-600' :
+                          'bg-gray-100 text-gray-600'
+                      }`}>
                       <Package size={20} />
                     </div>
                     <div>
@@ -212,12 +243,11 @@ const FreelancerDashboard = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'Completed' ? 'bg-green-100 text-green-800' :
                       order.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'Delivered' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        order.status === 'Delivered' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
                       {order.status}
                     </span>
                     <p className="text-sm text-gray-500 mt-1">
@@ -241,26 +271,26 @@ const FreelancerDashboard = () => {
       <div className="card">
         <h2 className="text-xl font-semibold mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link 
-            to="/freelancer/create-gig" 
+          <Link
+            to="/freelancer/create-gig"
             className="p-6 border border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-colors text-center"
           >
             <Briefcase className="mx-auto mb-4 text-primary-600" size={32} />
             <h3 className="font-semibold mb-2">Create New Gig</h3>
             <p className="text-sm text-gray-600">Offer a new service to clients</p>
           </Link>
-          
-          <Link 
-            to="/freelancer/orders" 
+
+          <Link
+            to="/freelancer/orders"
             className="p-6 border border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-colors text-center"
           >
             <Package className="mx-auto mb-4 text-primary-600" size={32} />
             <h3 className="font-semibold mb-2">Manage Orders</h3>
             <p className="text-sm text-gray-600">View and update your orders</p>
           </Link>
-          
-          <Link 
-            to="/freelancer/profile" 
+
+          <Link
+            to="/freelancer/profile"
             className="p-6 border border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-colors text-center"
           >
             <Eye className="mx-auto mb-4 text-primary-600" size={32} />

@@ -53,7 +53,13 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (userData) => {
     const response = await authApi.updateProfile(userData)
-    setUser(prev => ({ ...prev, ...response }))
+    // Backend returns { success: true, user: {...} }
+    // We need to merge the new user data into the existing state
+    if (response.user) {
+      setUser(prev => ({ ...prev, ...response.user }))
+    } else {
+      setUser(prev => ({ ...prev, ...response }))
+    }
     return response
   }
 

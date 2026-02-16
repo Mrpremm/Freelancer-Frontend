@@ -7,7 +7,7 @@ import { useToast } from '../../hooks/useToast';
 
 const ENDPOINT = 'http://localhost:3000';
 
-const ChatBox = ({ conversationId, receiverName, receiverId, isReadOnly = false }) => {
+const ChatBox = ({ conversationId, orderId, receiverName, receiverId, isReadOnly = false }) => {
   const { user } = useAuth();
   const { showError } = useToast();
   const [messages, setMessages] = useState([]);
@@ -16,24 +16,34 @@ const ChatBox = ({ conversationId, receiverName, receiverId, isReadOnly = false 
   const [imagePreview, setImagePreview] = useState(null);
   const [socket, setSocket] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState(conversationId);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
   const isLocked = isReadOnly;
+  const effectiveId = conversationId || orderId;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
+    if (!effectiveId) return;
+
     // Fetch previous messages
     const fetchMessages = async () => {
       try {
-        console.log('Fetching messages for conversation:', conversationId);
-        const data = await axiosClient.get(`/messages/${conversationId}`);
+        console.log('Fetching messages for id:', effectiveId);
+        const data = await axiosClient.get(`/messages/${effectiveId}`);
         console.log('Fetched messages data:', data);
         if (data && data.success) {
           setMessages(data.messages);
+          // Update active conversation ID if backend returns it (normalized)
+          if (data.conversationId) {
+            setActiveConversationId(data.conversationId);
+          } else if (conversationId) {
+            setActiveConversationId(conversationId);
+          }
         } else {
           console.error('Invalid message data received:', data);
         }
@@ -48,16 +58,38 @@ const ChatBox = ({ conversationId, receiverName, receiverId, isReadOnly = false 
     const newSocket = io(ENDPOINT);
     setSocket(newSocket);
 
-    newSocket.emit('join_conversation', conversationId);
+    // We need to join the room. If we don't have the real conversationId yet (e.g. using orderId), 
+    // we might need to wait or the backend might handle joining by orderId? 
+    // Ideally we join by conversationId. 
+    // If fetchMessages returns the real ID, we should use that. 
+    // But this effect runs on mount. socket.emit might happen before fetch returns.
+    // Let's rely on backend resolving orderId -> conversationId for the initial GET, 
+    // but for socket, we really want the conversation ID room.
+    // We can emit 'join_conversation' inside fetchMessages or use a separate effect that depends on activeConversationId.
 
-    newSocket.on('receive_message', (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
+    // For now, let's keep it here but assume we might need to rejoin if ID changes?
+    // Actually, let's move socket logic to a separate effect that depends on activeConversationId.
 
     return () => {
       newSocket.disconnect();
     };
-  }, [conversationId]);
+  }, [effectiveId]);
+
+  useEffect(() => {
+    if (!socket || !activeConversationId) return;
+
+    socket.emit('join_conversation', activeConversationId);
+
+    const handleReceiveMessage = (message) => {
+      setMessages((prev) => [...prev, message]);
+    };
+
+    socket.on('receive_message', handleReceiveMessage);
+
+    return () => {
+      socket.off('receive_message', handleReceiveMessage);
+    };
+  }, [socket, activeConversationId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -99,7 +131,8 @@ const ChatBox = ({ conversationId, receiverName, receiverId, isReadOnly = false 
       if (image) formData.append('image', image);
 
       // Save to DB via HTTP (handles upload)
-      const response = await axiosClient.post(`/messages/${conversationId}`, formData, {
+      const targetId = activeConversationId || effectiveId;
+      const response = await axiosClient.post(`/messages/${targetId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

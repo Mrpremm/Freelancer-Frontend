@@ -196,46 +196,13 @@ const GigDetailPage = () => {
             {isClient ? (
               <div className="space-y-3">
                 <button
-                  onClick={async () => {
-                    if (loadingPayment) return;
-                    try {
-                      setLoadingPayment(true);
-                      const response = await axiosClient.post('/payment/create-checkout-session', { gigId: gig._id });
-                      if (response.url) {
-                        window.location.href = response.url;
-                      } else {
-                        showError('Failed to initiate payment');
-                      }
-                    } catch (error) {
-                      console.error(error);
-                      showError(error.response?.data?.message || 'Payment initiation failed');
-                    } finally {
-                      setLoadingPayment(false);
-                    }
-                  }}
-                  disabled={loadingPayment}
-                  className="btn-primary w-full flex items-center justify-center py-4 text-lg disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={() => setShowOrderForm(true)}
+                  className="btn-primary w-full flex items-center justify-center py-4 text-lg"
                 >
                   <ShoppingCart className="mr-3" size={24} />
-                  {loadingPayment ? 'Processing...' : `Continue to Pay ($${gig.price})`}
+                  Book Order ($ {gig.price})
                 </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await axiosClient.post('/conversations', { receiverId: gig.freelancer._id });
-                      if (response) {
-                        navigate(`/inbox/${response._id}`);
-                      }
-                    } catch (error) {
-                      console.error('Failed to contact freelancer:', error);
-                      showError('Failed to start conversation');
-                    }
-                  }}
-                  className="w-full flex items-center justify-center py-3 text-primary-600 font-medium hover:bg-primary-50 rounded-lg transition-colors border border-primary-100 mb-3"
-                >
-                  <MessageSquare className="mr-2" size={20} />
-                  Contact Freelancer
-                </button>
+
                 <Link
                   to={`/freelancer/${gig.freelancer?._id}`}
                   className="w-full flex items-center justify-center py-3 text-gray-600 font-medium hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"

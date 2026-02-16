@@ -4,6 +4,7 @@ import { ordersApi } from '../../api/orders';
 import { reviewsApi } from '../../api/reviews';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
+import axiosClient from '../../api/axiosClient';
 import ChatBox from '../../components/chat/ChatBox';
 import Loader from '../../components/common/LoadingSpinner';
 import ReviewForm from '../../components/reviews/ReviewForm';
@@ -89,8 +90,15 @@ const OrderDetailsPage = () => {
 
   if (!order) return null;
 
-  const isClient = user._id === order.client._id;
+  const isClient = user?._id && order?.client?._id && user._id.toString() === order.client._id.toString();
   const otherUser = isClient ? order.freelancer : order.client;
+
+  console.log('Order Details Debug:', {
+    user: user?._id,
+    client: order?.client?._id,
+    isClient,
+    status: order?.status
+  });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -103,11 +111,13 @@ const OrderDetailsPage = () => {
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${order.status === 'Completed'
                   ? 'bg-green-100 text-green-800'
-                  : order.status === 'In Progress'
-                    ? 'bg-blue-100 text-blue-800'
-                    : order.status === 'Cancelled'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                  : order.status === 'Approved'
+                    ? 'bg-teal-100 text-teal-800'
+                    : order.status === 'In Progress'
+                      ? 'bg-blue-100 text-blue-800'
+                      : order.status === 'Cancelled'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
                   }`}
               >
                 {order.status}
@@ -157,31 +167,38 @@ const OrderDetailsPage = () => {
 
             {/* Actions */}
             <div className="border-t pt-4 flex justify-end gap-3 flex-wrap">
-              {/* Cancel Button - Available to both if not completed/cancelled */}
-              {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+              {!isClient && order.status === 'Pending' && (
                 <button
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-                      ordersApi.cancelOrder(id).then(() => {
-                        showSuccess('Order cancelled successfully');
-                        fetchOrderDetails();
-                      }).catch(err => showError(err.message));
-                    }
-                  }}
-                  className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200"
+                  onClick={() => handleStatusUpdate('Approved')}
+                  className="btn-primary"
                 >
-                  Cancel Order
+                  Accept Order
                 </button>
               )}
 
-              {!isClient && order.status === 'Pending' && (
+              {isClient && order.status === 'Approved' && (
                 <button
-                  onClick={() => handleStatusUpdate('In Progress')}
+                  onClick={async () => {
+                    try {
+                      console.log('Initiating payment for order:', order._id);
+                      const response = await axiosClient.post('/payment/create-checkout-session', { orderId: order._id });
+                      console.log('Payment response:', response);
+                      if (response.url) {
+                        window.location.href = response.url;
+                      } else {
+                        showError('Failed to get payment URL');
+                      }
+                    } catch (err) {
+                      console.error('Payment initiation error:', err);
+                      showError(err.message || 'Failed to initiate payment');
+                    }
+                  }}
                   className="btn-primary"
                 >
-                  Accept & Start
+                  Pay Now
                 </button>
               )}
+
               {!isClient && order.status === 'In Progress' && (
                 <button
                   onClick={() => handleStatusUpdate('Delivered')}
@@ -190,22 +207,38 @@ const OrderDetailsPage = () => {
                   Mark as Delivered
                 </button>
               )}
+
               {isClient && order.status === 'Delivered' && (
                 <button
                   onClick={() => handleStatusUpdate('Completed')}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors"
                 >
-                  Accept Delivery
+                  Accept Delivery & Review
                 </button>
               )}
             </div>
           </div>
 
           {/* Review Section */}
-          {order.status === 'Completed' && (
+          {(order.status === 'Completed' || (order.status === 'Delivered' && isClient)) && (
             <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <h3 className="text-xl font-bold mb-4">Review</h3>
-              {review ? (
+              <h3 className="text-xl font-bold mb-4">
+                {order.status === 'Completed' ? 'Review' : 'Pending Review'}
+              </h3>
+
+              {order.status === 'Delivered' && isClient ? (
+                <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-gray-600 mb-4">
+                    Please accept the delivery to leave a review for the freelancer.
+                  </p>
+                  <button
+                    onClick={() => handleStatusUpdate('Completed')}
+                    className="btn-primary"
+                  >
+                    Accept Delivery
+                  </button>
+                </div>
+              ) : review ? (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center mb-2">
                     <div className="flex text-yellow-400">
@@ -227,25 +260,28 @@ const OrderDetailsPage = () => {
                 </div>
               ) : isClient ? (
                 !showReviewForm ? (
-                  <button
-                    onClick={() => setShowReviewForm(true)}
-                    className="btn-primary"
-                  >
-                    Leave a Review
-                  </button>
+                  <div className="text-center py-6">
+                    <p className="text-gray-600 mb-4">How was your experience working with this freelancer?</p>
+                    <button
+                      onClick={() => setShowReviewForm(true)}
+                      className="btn-primary"
+                    >
+                      Leave a Review
+                    </button>
+                  </div>
                 ) : (
-                  <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
                     <ReviewForm onSubmit={handleReviewSubmit} />
                     <button
                       onClick={() => setShowReviewForm(false)}
-                      className="mt-4 text-gray-500 hover:text-gray-700 text-sm"
+                      className="mt-4 text-gray-500 hover:text-gray-700 text-sm w-full text-center"
                     >
                       Cancel
                     </button>
                   </div>
                 )
               ) : (
-                <p className="text-gray-500 italic">Client has not left a review yet.</p>
+                <p className="text-gray-500 italic text-center py-4">Client has not left a review yet.</p>
               )}
             </div>
           )}

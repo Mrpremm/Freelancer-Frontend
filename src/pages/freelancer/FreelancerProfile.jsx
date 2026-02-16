@@ -1,11 +1,23 @@
+import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { useToast } from '../../hooks/useToast'
-import { User, MapPin, Globe, Plus, Trash2, Linkedin, Github, Twitter, Instagram } from 'lucide-react'
+import { User, MapPin, Globe, Plus, Trash2, Linkedin, Github, Twitter, Instagram, Camera } from 'lucide-react'
 
 const FreelancerProfile = () => {
   const { user, updateProfile } = useAuth()
   const { showSuccess, showError } = useToast()
+
+  const [profileImage, setProfileImage] = useState(user?.profilePicture || null)
+  const [imageFile, setImageFile] = useState(null)
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImageFile(file)
+      setProfileImage(URL.createObjectURL(file))
+    }
+  }
 
   const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
@@ -59,6 +71,11 @@ const FreelancerProfile = () => {
       formData.append('location', data.location);
       formData.append('website', data.website);
 
+      // Handle Profile Picture
+      if (imageFile) {
+        formData.append('profilePicture', imageFile);
+      }
+
       // Handle skills
       formData.append('skills', data.skills);
 
@@ -68,10 +85,9 @@ const FreelancerProfile = () => {
       formData.append('projects', JSON.stringify(data.projects));
       formData.append('socialLinks', JSON.stringify(data.socialLinks));
 
-      // Handle File Uploads
-      // Resume
-      if (data.resumeFile && data.resumeFile.length > 0) {
-        formData.append('resume', data.resumeFile[0]);
+      // Handle Resume (Link)
+      if (data.resume) {
+        formData.append('resume', data.resume);
       }
 
       await updateProfile(formData);
@@ -89,19 +105,41 @@ const FreelancerProfile = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Edit Profile</h1>
 
+        {/* Profile Image Upload */}
+        <div className="flex justify-center mb-8">
+          <div className="relative">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100">
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <User size={64} />
+                </div>
+              )}
+            </div>
+            <label
+              htmlFor="profile-upload"
+              className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-primary-700 transition-colors"
+            >
+              <Camera size={20} />
+              <input
+                id="profile-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
+            </label>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Info */}
           <section className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Display Name</label>
-                <input
-                  type="text"
-                  {...register('name', { required: 'Name is required' })}
-                  className="input-field mt-1"
-                />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+              <div className="md:col-span-2">
+                {/* Name and Email are managed in account settings, not profile */}
               </div>
 
               <div>
@@ -125,24 +163,17 @@ const FreelancerProfile = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Resume Upload (PDF/DOC)</label>
-                <div className="mt-1 flex items-center gap-4">
+                <label className="block text-sm font-medium text-gray-700">Resume Link (Google Drive, Dropbox, etc.)</label>
+                <div className="mt-1">
                   <input
-                    type="file"
-                    {...register('resumeFile')}
-                    accept=".pdf,.doc,.docx"
-                    className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-primary-50 file:text-primary-700
-                        hover:file:bg-primary-100"
+                    type="url"
+                    {...register('resume')}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="input-field"
                   />
-                  {user?.resume && (
-                    <a href={user.resume} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">
-                      View Current Resume
-                    </a>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Paste a public link to your resume. Make sure sharing permissions are set to "Anyone with the link".
+                  </p>
                 </div>
               </div>
 
