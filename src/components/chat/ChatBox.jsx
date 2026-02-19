@@ -5,7 +5,7 @@ import { Send, Image as ImageIcon, X, Lock } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 import { useToast } from '../../hooks/useToast';
 
-const ENDPOINT = 'http://localhost:3000';
+const ENDPOINT = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 const ChatBox = ({ conversationId, orderId, receiverName, receiverId, isReadOnly = false }) => {
   const { user } = useAuth();
